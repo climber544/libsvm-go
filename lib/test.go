@@ -1,7 +1,7 @@
 package main
 
 // this is just a test for git
-//
+// this is another test for git
 import (
 	"fmt"
 	"os"
