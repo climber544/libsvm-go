@@ -1,0 +1,50 @@
+package main
+
+import (
+        "bufio"
+        "fmt"
+        "os"
+        "strconv"
+        "strings"
+)
+
+func check(e error) {
+        if e != nil {
+                panic(e)
+        }
+}
+
+func main() {
+        f, err := os.Open("a1a.train")
+        check(err)
+
+        defer func() { // close f on exit
+                f.Close()
+        }()
+
+        scanner := bufio.NewScanner(f)
+        //scanner.Split(bufio.ScanWords)
+        var j int = 0
+        for scanner.Scan() {
+                line := scanner.Text()
+                tokens := strings.Split(line, " ")
+                label, _ := strconv.ParseFloat(tokens[0], 64)
+                fmt.Printf("label %g %s\n", label, tokens[0])
+                space := tokens[1:]
+                fmt.Println(space)
+                fmt.Println(tokens)
+                for _, w := range space {
+                        if len(w) > 0 {
+				node := strings.Split(w, ":")
+				if len(node) > 0 {
+					index, _ := strconv.ParseFloat(node[0], 64)
+					value, _ := strconv.ParseFloat(node[1], 64)
+                                        fmt.Printf("e[%d]=%g:%g ", j, index, value)
+                                        j = j + 1
+				}
+                        }
+                }
+                fmt.Println()
+        }
+        check(scanner.Err())
+}
