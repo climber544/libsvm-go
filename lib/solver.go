@@ -11,6 +11,10 @@ const (
 	FREE        = iota
 )
 
+type workingSetSelecter interface {
+	workingSetSelect(s *Solver) (int, int, int)
+}
+
 type Solver struct {
 	l            int     // problem size
 	q            matrixQ // Q matrix
@@ -23,6 +27,7 @@ type Solver struct {
 	penaltyCn    float64
 	y            []int8 // class, +1 or -1
 	eps          float64
+	workingSet   workingSetSelecter
 }
 
 func (solver Solver) isUpperBound(i int) bool {
@@ -98,7 +103,7 @@ func (solver *Solver) Solve() solution {
 		var i int = 0
 		var j int = 0
 		var rc int = 0
-		if i, j, rc = solver.selectWorkingSet(); rc != 0 {
+		if i, j, rc = solver.workingSet.workingSetSelect(solver); rc != 0 {
 			fmt.Print("*")
 			break
 		}
@@ -218,89 +223,6 @@ func (solver *Solver) Solve() solution {
 	return si
 }
 
-func (solver Solver) selectWorkingSet() (int, int, int) {
-	var gmax float64 = -math.MaxFloat64
-	var gmax2 float64 = -math.MaxFloat64
-	var obj_diff_min float64 = math.MaxFloat64
-	var gmax_idx int = -1
-	var gmin_idx int = -1
-
-	for i := 0; i < solver.l; i++ {
-		if solver.y[i] == 1 {
-			if !solver.isUpperBound(i) {
-				if -solver.gradient[i] >= gmax {
-					gmax = -solver.gradient[i]
-					gmax_idx = i
-				}
-			}
-			if !solver.isLowerBound(i) {
-				if solver.gradient[i] >= gmax2 {
-					gmax2 = solver.gradient[i]
-				}
-			}
-		} else {
-			if !solver.isLowerBound(i) {
-				if solver.gradient[i] >= gmax {
-					gmax = solver.gradient[i]
-					gmax_idx = i
-				}
-			}
-			if !solver.isUpperBound(i) {
-				if -solver.gradient[i] >= gmax2 {
-					gmax2 = -solver.gradient[i]
-				}
-			}
-		}
-	}
-
-	if gmax+gmax2 < solver.eps {
-		return -1, -1, 1
-	}
-
-	i := gmax_idx
-
-	for j := 0; j < solver.l; j++ {
-		if solver.y[j] == 1 {
-			if !solver.isLowerBound(j) {
-				grad_diff := gmax + solver.gradient[j]
-				if grad_diff > 0 {
-					var obj_diff float64
-					quad_coef := solver.qd[i] + solver.qd[j] - 2.0*float64(solver.y[i])*solver.q.computeQ(i, j)
-					if quad_coef > 0 {
-						obj_diff = -(grad_diff * grad_diff) / quad_coef
-					} else {
-						obj_diff = -(grad_diff * grad_diff) / TAU
-					}
-					if obj_diff <= obj_diff_min {
-						obj_diff_min = obj_diff
-						gmin_idx = j
-					}
-				}
-			}
-		} else {
-			if !solver.isUpperBound(j) {
-				grad_diff := gmax - solver.gradient[j]
-				if grad_diff > 0 {
-					var obj_diff float64
-					quad_coeff := solver.qd[i] + solver.qd[j] + 2.0*float64(solver.y[i])*solver.q.computeQ(i, j)
-					if quad_coeff > 0 {
-						obj_diff = -(grad_diff * grad_diff) / quad_coeff
-					} else {
-						obj_diff = -(grad_diff * grad_diff) / quad_coeff
-					}
-					if obj_diff <= obj_diff_min {
-						obj_diff_min = obj_diff
-						gmin_idx = j
-					}
-				}
-			}
-		}
-	}
-
-	//fmt.Printf("gmax_idx=%d, gmin_idx=%d\n", gmax_idx, gmin_idx)
-	return gmax_idx, gmin_idx, 0
-}
-
 func (solver Solver) calculateRho() float64 {
 	var ub float64 = math.MaxFloat64
 	var lb float64 = -math.MaxFloat64
@@ -337,7 +259,8 @@ func (solver Solver) calculateRho() float64 {
 }
 
 func NewSolver(l int, q matrixQ, p []float64, y []int8, alpha []float64, penaltyCp, penaltyCn, eps float64) Solver {
-	solver := Solver{l: l, q: q, p: p, y: y, alpha: alpha, penaltyCp: penaltyCp, penaltyCn: penaltyCn, eps: eps}
+	solver := Solver{l: l, q: q, p: p, y: y, alpha: alpha,
+		penaltyCp: penaltyCp, penaltyCn: penaltyCn, eps: eps, workingSet: selectWorkingSet{}}
 	solver.qd = q.getQD()
 	return solver
 }
