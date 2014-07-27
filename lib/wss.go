@@ -47,13 +47,15 @@ func (s selectWorkingSet) workingSetSelect(solver *Solver) (int, int, int) {
 
 	i := gmax_idx
 
+	Qi := solver.q.getQ(i, solver.l)
+
 	for j := 0; j < solver.l; j++ {
 		if solver.y[j] == 1 {
 			if !solver.isLowerBound(j) {
 				grad_diff := gmax + solver.gradient[j]
 				if grad_diff > 0 {
 					var obj_diff float64
-					quad_coef := solver.qd[i] + solver.qd[j] - 2.0*float64(solver.y[i])*solver.q.computeQ(i, j)
+					quad_coef := solver.qd[i] + solver.qd[j] - 2.0*float64(solver.y[i])*Qi[j]
 					if quad_coef > 0 {
 						obj_diff = -(grad_diff * grad_diff) / quad_coef
 					} else {
@@ -70,7 +72,7 @@ func (s selectWorkingSet) workingSetSelect(solver *Solver) (int, int, int) {
 				grad_diff := gmax - solver.gradient[j]
 				if grad_diff > 0 {
 					var obj_diff float64
-					quad_coeff := solver.qd[i] + solver.qd[j] + 2.0*float64(solver.y[i])*solver.q.computeQ(i, j)
+					quad_coeff := solver.qd[i] + solver.qd[j] + 2.0*float64(solver.y[i])*Qi[j]
 					if quad_coeff > 0 {
 						obj_diff = -(grad_diff * grad_diff) / quad_coeff
 					} else {
