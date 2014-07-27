@@ -1,9 +1,8 @@
 package main
 
 type matrixQ interface {
-	getQ(i, l int) []float64   // Returns all the Q matrix values for column i
-	getQD() []float64          // Returns the Q matrix values for the diagonal
-	computeQ(i, j int) float64 // Returns the Q matrix value at position (i,j)
+	getQ(i, l int) []float64 // Returns all the Q matrix values for column i
+	getQD() []float64        // Returns the Q matrix values for the diagonal
 }
 
 /**
@@ -55,7 +54,7 @@ func NewSVCQ(prob *Problem, param *Parameter, y []int8) svcQ {
 }
 
 /**
- * Q matrix for one-class support vector machines: determines if new data is likely to be in one class.
+ * Q matrix for one-class support vector machines: determines if new data is likely to be in one class (novality detection).
  */
 type oneClassQ struct {
 	qd     []float64
@@ -129,16 +128,16 @@ func (q svrQ) getQD() []float64 {
 /**
  * Get Q values for column i
  */
-func (q svrQ) getQ(i, l int) []float64 {
+func (q svrQ) getQ(i, l int) []float64 { // @param l is 2 * q.l
 	sign_i := q.sign(i)
 	real_i := q.real_idx(i)
 
-	rcq := make([]float64, 2*l)
+	rcq := make([]float64, 2*q.l)
 
-	for j := 0; j < l; j++ { // compute rows
+	for j := 0; j < q.l; j++ { // compute rows
 		t := q.kernel.compute(real_i, j)
 		rcq[j] = sign_i * q.sign(j) * t
-		rcq[j+l] = sign_i * q.sign(j+l) * t
+		rcq[j+q.l] = sign_i * q.sign(j+l) * t
 	}
 
 	return rcq

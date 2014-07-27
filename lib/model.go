@@ -250,7 +250,7 @@ func (model *Model) classification(prob *Problem) {
 
 }
 
-func (model *Model) regression(prob *Problem) {
+func (model *Model) regressionOneClass(prob *Problem) {
 
 	if decision_result, err := train_one(prob, model.param, 0, 0); err == nil { // no error in training
 		model.rho = append(model.rho, decision_result.rho)
@@ -283,13 +283,14 @@ func (model *Model) regression(prob *Problem) {
 	}
 }
 
-func (model *Model) Train(prob *Problem) {
+func (model *Model) Train(prob *Problem) error {
 	switch model.param.SvmType {
 	case C_SVC, NU_SVC:
 		model.classification(prob)
 	case ONE_CLASS, EPSILON_SVR, NU_SVR:
-		model.regression(prob)
+		model.regressionOneClass(prob)
 	}
+	return nil
 }
 
 func (model *Model) Dump(file string) error {

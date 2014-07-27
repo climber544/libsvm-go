@@ -4,7 +4,14 @@ import (
 	"math"
 )
 
+type workingSetSelecter interface {
+	workingSetSelect(solver *Solver) (int, int, int)
+	calculateRho(solver *Solver) (float64, float64)
+}
+
 type selectWorkingSet struct{}
+
+type selectWorkingSetNU struct{}
 
 func (s selectWorkingSet) workingSetSelect(solver *Solver) (int, int, int) {
 	var gmax float64 = -math.MaxFloat64
@@ -91,7 +98,40 @@ func (s selectWorkingSet) workingSetSelect(solver *Solver) (int, int, int) {
 	return gmax_idx, gmin_idx, 0
 }
 
-type selectWorkingSetNU struct{}
+func (s selectWorkingSet) calculateRho(solver *Solver) (float64, float64) {
+	var ub float64 = math.MaxFloat64
+	var lb float64 = -math.MaxFloat64
+	var sum_free float64 = 0
+	var nr_free int = 0
+	var r float64 = 0
+	for i := 0; i < solver.l; i++ {
+		yG := float64(solver.y[i]) * solver.gradient[i]
+		if solver.isUpperBound(i) {
+			if solver.y[i] == -1 {
+				ub = minf(ub, yG)
+			} else {
+				lb = maxf(lb, yG)
+			}
+		} else if solver.isLowerBound(i) {
+			if solver.y[i] == 1 {
+				ub = minf(ub, yG)
+			} else {
+				lb = maxf(lb, yG)
+			}
+		} else {
+			nr_free = nr_free + 1
+			sum_free = sum_free + yG
+		}
+	}
+
+	if nr_free > 0 {
+		r = sum_free / float64(nr_free)
+	} else {
+		r = (ub + lb) / 2
+	}
+
+	return r, 0
+}
 
 func (s selectWorkingSetNU) workingSetSelect(solver *Solver) (int, int, int) {
 	var gmaxp float64 = -math.MaxFloat64
@@ -198,4 +238,55 @@ func (s selectWorkingSetNU) workingSetSelect(solver *Solver) (int, int, int) {
 	}
 
 	return out_i, out_j, 0
+}
+
+func (s selectWorkingSetNU) calculateRho(solver *Solver) (float64, float64) {
+	var nr_free1 int = 0
+	var nr_free2 int = 0
+	var ub1 float64 = math.MaxFloat64
+	var ub2 float64 = math.MaxFloat64
+	var lb1 float64 = -math.MaxFloat64
+	var lb2 float64 = -math.MaxFloat64
+	var sum_free1 float64 = 0
+	var sum_free2 float64 = 0
+
+	for i := 0; i < solver.l; i++ {
+		if solver.y[i] == 1 {
+			if solver.isUpperBound(i) {
+				lb1 = maxf(lb1, solver.gradient[i])
+			} else if solver.isLowerBound(i) {
+				ub1 = minf(ub1, solver.gradient[i])
+			} else {
+				nr_free1++
+				sum_free1 += solver.gradient[i]
+			}
+		} else {
+			if solver.isUpperBound(i) {
+				lb2 = maxf(lb2, solver.gradient[i])
+			} else if solver.isLowerBound(i) {
+				ub2 = minf(ub2, solver.gradient[i])
+			} else {
+				nr_free2++
+				sum_free2 += solver.gradient[i]
+			}
+
+		}
+	}
+
+	var r1 float64
+	var r2 float64
+
+	if nr_free1 > 0 {
+		r1 = sum_free1 / float64(nr_free1)
+	} else {
+		r1 = (ub1 + lb1) / 2.0
+	}
+
+	if nr_free2 > 0 {
+		r2 = sum_free2 / float64(nr_free2)
+	} else {
+		r2 = (ub2 + lb2) / 2.0
+	}
+
+	return (r1 - r2) / 2, (r1 + r2) / 2
 }

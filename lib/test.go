@@ -19,9 +19,14 @@ func foo() {
 }
 
 func main() {
-	var data_file_name string = "../test_data/dna.train"
-
 	param := NewParameter()
+
+	//var data_file_name string = "../test_data/multi-class/a9a.train"
+	var data_file_name string = "../test_data/regression/cpusmall_scale.train"
+	//var data_file_name string = "../test_data/regression/cadata.train"
+	//param.SvmType = EPSILON_SVR
+	param.SvmType = NU_SVR
+
 	var prob Problem
 
 	prob.Read(data_file_name, param)

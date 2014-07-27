@@ -11,10 +11,6 @@ const (
 	FREE        = iota
 )
 
-type workingSetSelecter interface {
-	workingSetSelect(s *Solver) (int, int, int)
-}
-
 type Solver struct {
 	l            int     // problem size
 	q            matrixQ // Q matrix
@@ -205,7 +201,7 @@ func (solver *Solver) Solve() solution {
 
 	var si solution
 
-	si.rho = solver.calculateRho()
+	si.rho, si.r = solver.workingSet.calculateRho(solver)
 
 	var v float64 = 0 // calculate objective value
 	for i := 0; i < solver.l; i++ {
@@ -221,41 +217,6 @@ func (solver *Solver) Solve() solution {
 	fmt.Printf("\noptimization finished, #iter = %d\n", iter)
 
 	return si
-}
-
-func (solver Solver) calculateRho() float64 {
-	var ub float64 = math.MaxFloat64
-	var lb float64 = -math.MaxFloat64
-	var sum_free float64 = 0
-	var nr_free int = 0
-	var r float64 = 0
-	for i := 0; i < solver.l; i++ {
-		yG := float64(solver.y[i]) * solver.gradient[i]
-		if solver.isUpperBound(i) {
-			if solver.y[i] == -1 {
-				ub = minf(ub, yG)
-			} else {
-				lb = maxf(lb, yG)
-			}
-		} else if solver.isLowerBound(i) {
-			if solver.y[i] == 1 {
-				ub = minf(ub, yG)
-			} else {
-				lb = maxf(lb, yG)
-			}
-		} else {
-			nr_free = nr_free + 1
-			sum_free = sum_free + yG
-		}
-	}
-
-	if nr_free > 0 {
-		r = sum_free / float64(nr_free)
-	} else {
-		r = (ub + lb) / 2
-	}
-
-	return r
 }
 
 func NewSolver(l int, q matrixQ, p []float64, y []int8, alpha []float64, penaltyCp, penaltyCn, eps float64, nu bool) Solver {
