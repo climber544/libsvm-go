@@ -82,7 +82,7 @@ func solve_c_svc(prob *Problem, param *Parameter, Cp, Cn float64) solution {
 		}
 	}
 
-	s := NewSolver(l, NewSVCQ(prob, param, y), minus_one, y, alpha, Cp, Cn, param.eps)
+	s := NewSolver(l, NewSVCQ(prob, param, y), minus_one, y, alpha, Cp, Cn, param.eps, false /*not nu*/)
 
 	si := s.Solve() // generate solution
 

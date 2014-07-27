@@ -258,9 +258,15 @@ func (solver Solver) calculateRho() float64 {
 	return r
 }
 
-func NewSolver(l int, q matrixQ, p []float64, y []int8, alpha []float64, penaltyCp, penaltyCn, eps float64) Solver {
+func NewSolver(l int, q matrixQ, p []float64, y []int8, alpha []float64, penaltyCp, penaltyCn, eps float64, nu bool) Solver {
+
 	solver := Solver{l: l, q: q, p: p, y: y, alpha: alpha,
-		penaltyCp: penaltyCp, penaltyCn: penaltyCn, eps: eps, workingSet: selectWorkingSet{}}
+		penaltyCp: penaltyCp, penaltyCn: penaltyCn, eps: eps}
+	if nu {
+		solver.workingSet = selectWorkingSetNU{}
+	} else {
+		solver.workingSet = selectWorkingSet{}
+	}
 	solver.qd = q.getQD()
 	return solver
 }
