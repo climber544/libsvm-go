@@ -19,8 +19,8 @@ type solution struct {
 	rho           float64
 	upper_bound_p float64
 	upper_bound_n float64
-	r             float64
 	alpha         []float64
+	r             float64
 }
 
 type decision struct {
