@@ -99,17 +99,17 @@ func (model *Model) classification(prob *Problem) {
 	for i := 0; i < nr_class; i++ {
 		weighted_C[i] = model.param.C
 	}
-	for i := 0; i < model.param.nr_weight; i++ { // this is only done if the relative weight of the labels have been set by the user
+	for i := 0; i < model.param.NrWeight; i++ { // this is only done if the relative weight of the labels have been set by the user
 		var j int = 0
 		for j = 0; j < nr_class; j++ {
-			if model.param.weight_label[i] == label[j] {
+			if model.param.WeightLabel[i] == label[j] {
 				break
 			}
 		}
 		if j == nr_class {
-			fmt.Fprintf(os.Stderr, "WARNING: class label %d specified in weight is not found\n", model.param.weight_label[i])
+			fmt.Fprintf(os.Stderr, "WARNING: class label %d specified in weight is not found\n", model.param.WeightLabel[i])
 		} else {
-			weighted_C[j] = weighted_C[j] * model.param.weight[i] // multiple with user specified weight for label
+			weighted_C[j] = weighted_C[j] * model.param.Weight[i] // multiple with user specified weight for label
 		}
 	}
 
@@ -284,7 +284,7 @@ func (model *Model) regression(prob *Problem) {
 }
 
 func (model *Model) Train(prob *Problem) {
-	switch model.param.svm_type {
+	switch model.param.SvmType {
 	case C_SVC, NU_SVC:
 		model.classification(prob)
 	case ONE_CLASS, EPSILON_SVR, NU_SVR:
@@ -303,20 +303,20 @@ func (model *Model) Dump(file string) error {
 	var output []string
 
 	//svm_type_string := [5]string{"c_svc", "nu_svc", "one_class", "epsilon_svr", "nu_svr"}
-	output = append(output, fmt.Sprintf("svm_type %s\n", svm_type_string[model.param.svm_type]))
+	output = append(output, fmt.Sprintf("svm_type %s\n", svm_type_string[model.param.SvmType]))
 
-	output = append(output, fmt.Sprintf("kernel_type %s\n", kernel_type_string[model.param.kernel_type]))
+	output = append(output, fmt.Sprintf("kernel_type %s\n", kernel_type_string[model.param.KernelType]))
 
-	if model.param.kernel_type == POLY {
-		output = append(output, fmt.Sprintf("degree %d\n", model.param.degree))
+	if model.param.KernelType == POLY {
+		output = append(output, fmt.Sprintf("degree %d\n", model.param.Degree))
 	}
 
-	if model.param.kernel_type == POLY || model.param.kernel_type == RBF || model.param.kernel_type == SIGMOID {
-		output = append(output, fmt.Sprintf("gamma %.6g\n", model.param.gamma))
+	if model.param.KernelType == POLY || model.param.KernelType == RBF || model.param.KernelType == SIGMOID {
+		output = append(output, fmt.Sprintf("gamma %.6g\n", model.param.Gamma))
 	}
 
-	if model.param.kernel_type == POLY || model.param.kernel_type == SIGMOID {
-		output = append(output, fmt.Sprintf("coef0 %.6g\n", model.param.coef0))
+	if model.param.KernelType == POLY || model.param.KernelType == SIGMOID {
+		output = append(output, fmt.Sprintf("coef0 %.6g\n", model.param.Coef0))
 	}
 
 	var nr_class int = model.nr_class
@@ -372,7 +372,7 @@ func (model *Model) Dump(file string) error {
 		}
 
 		i_idx := model.SV[i]
-		if model.param.kernel_type == PRECOMPUTED {
+		if model.param.KernelType == PRECOMPUTED {
 			output = append(output, fmt.Sprintf("0:%d ", model.x_space[i_idx]))
 		} else {
 			for model.x_space[i_idx].index != -1 {
@@ -404,7 +404,7 @@ func (model *Model) readHeader(scanner *bufio.Scanner) error {
 
 			for i = 0; i < len(svm_type_string); i++ {
 				if svm_type_string[i] == tokens[1] {
-					model.param.svm_type = i
+					model.param.SvmType = i
 					break
 				}
 			}
@@ -417,7 +417,7 @@ func (model *Model) readHeader(scanner *bufio.Scanner) error {
 
 			for i = 0; i < len(kernel_type_string); i++ {
 				if kernel_type_string[i] == tokens[1] {
-					model.param.kernel_type = i
+					model.param.KernelType = i
 					break
 				}
 			}
@@ -428,19 +428,19 @@ func (model *Model) readHeader(scanner *bufio.Scanner) error {
 
 		case "degree":
 
-			if model.param.degree, err = strconv.Atoi(tokens[1]); err != nil {
+			if model.param.Degree, err = strconv.Atoi(tokens[1]); err != nil {
 				return err
 			}
 
 		case "gamma":
 
-			if model.param.gamma, err = strconv.ParseFloat(tokens[1], 64); err != nil {
+			if model.param.Gamma, err = strconv.ParseFloat(tokens[1], 64); err != nil {
 				return err
 			}
 
 		case "coef0":
 
-			if model.param.coef0, err = strconv.ParseFloat(tokens[1], 64); err != nil {
+			if model.param.Coef0, err = strconv.ParseFloat(tokens[1], 64); err != nil {
 				return err
 			}
 

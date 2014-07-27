@@ -70,8 +70,8 @@ func (problem *Problem) Read(file string, param *Parameter) error { // reads the
 	}
 	problem.l = l
 
-	if param.gamma == 0 && max_idx > 0 {
-		param.gamma = 1.0 / float64(max_idx)
+	if param.Gamma == 0 && max_idx > 0 {
+		param.Gamma = 1.0 / float64(max_idx)
 	}
 
 	return scanner.Err()

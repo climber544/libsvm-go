@@ -31,13 +31,13 @@ type decision struct {
 func train_one(prob *Problem, param *Parameter, Cp, Cn float64) (decision, error) {
 
 	var si solution
-	switch param.svm_type {
+	switch param.SvmType {
 	case C_SVC:
 		si = solve_c_svc(prob, param, Cp, Cn)
 		// case NU_SVC:
 		// case ONE_CLASS:
 	default:
-		return decision{}, &trainError{val: param.svm_type, msg: "svm type not supported"}
+		return decision{}, &trainError{val: param.SvmType, msg: "svm type not supported"}
 	}
 
 	fmt.Printf("obj = %f, rho = %f\n", si.obj, si.rho)
@@ -82,7 +82,7 @@ func solve_c_svc(prob *Problem, param *Parameter, Cp, Cn float64) solution {
 		}
 	}
 
-	s := NewSolver(l, NewSVCQ(prob, param, y), minus_one, y, alpha, Cp, Cn, param.eps, false /*not nu*/)
+	s := NewSolver(l, NewSVCQ(prob, param, y), minus_one, y, alpha, Cp, Cn, param.Eps, false /*not nu*/)
 
 	si := s.Solve() // generate solution
 
