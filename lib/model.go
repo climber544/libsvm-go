@@ -10,18 +10,18 @@ import (
 )
 
 type Model struct {
-	param      *Parameter
-	l          int
-	nr_class   int
-	label      []int
-	rho        []float64
-	nSV        []int
-	SV         []int
-	x_space    []snode
-	sv_indices []int
-	sv_coef    [][]float64
-	probA      []float64
-	probB      []float64
+	param     *Parameter
+	l         int
+	nrClass   int
+	label     []int
+	rho       []float64
+	nSV       []int
+	sV        []int
+	x_space   []snode
+	svIndices []int
+	svCoef    [][]float64
+	probA     []float64
+	probB     []float64
 }
 
 func (model Model) groupClasses(prob *Problem) (int, []int, []int, []int, []int) {
@@ -62,10 +62,10 @@ func (model Model) groupClasses(prob *Problem) (int, []int, []int, []int, []int)
 		}
 	}
 
-	nr_class := len(label) // number of unique labels found
-	start := make([]int, nr_class)
+	nrClass := len(label) // number of unique labels found
+	start := make([]int, nrClass)
 	start[0] = 0
-	for i := 1; i < nr_class; i++ {
+	for i := 1; i < nrClass; i++ {
 		start[i] = start[i-1] + count[i-1]
 	}
 
@@ -78,16 +78,16 @@ func (model Model) groupClasses(prob *Problem) (int, []int, []int, []int, []int)
 	}
 
 	start[0] = 0
-	for i := 1; i < nr_class; i++ { // reset the starting position again
+	for i := 1; i < nrClass; i++ { // reset the starting position again
 		start[i] = start[i-1] + count[i-1]
 	}
 
-	return nr_class, label, start, count, perm
+	return nrClass, label, start, count, perm
 }
 
 func (model *Model) classification(prob *Problem) {
 
-	nr_class, label, start, count, perm := model.groupClasses(prob) // group SV with the same labels together
+	nrClass, label, start, count, perm := model.groupClasses(prob) // group SV with the same labels together
 
 	var l int = prob.l
 	x := make([]int, l)
@@ -95,18 +95,18 @@ func (model *Model) classification(prob *Problem) {
 		x[i] = prob.x[perm[i]] // this is the new x slice with the grouped SVs
 	}
 
-	weighted_C := make([]float64, nr_class)
-	for i := 0; i < nr_class; i++ {
+	weighted_C := make([]float64, nrClass)
+	for i := 0; i < nrClass; i++ {
 		weighted_C[i] = model.param.C
 	}
 	for i := 0; i < model.param.NrWeight; i++ { // this is only done if the relative weight of the labels have been set by the user
 		var j int = 0
-		for j = 0; j < nr_class; j++ {
+		for j = 0; j < nrClass; j++ {
 			if model.param.WeightLabel[i] == label[j] {
 				break
 			}
 		}
-		if j == nr_class {
+		if j == nrClass {
 			fmt.Fprintf(os.Stderr, "WARNING: class label %d specified in weight is not found\n", model.param.WeightLabel[i])
 		} else {
 			weighted_C[j] = weighted_C[j] * model.param.Weight[i] // multiple with user specified weight for label
@@ -118,8 +118,8 @@ func (model *Model) classification(prob *Problem) {
 		nonzero[i] = false
 	}
 	decisions := make([]decision, 0) // slice for appending all our decisions.
-	for i := 0; i < nr_class; i++ {
-		for j := i + 1; j < nr_class; j++ {
+	for i := 0; i < nrClass; i++ {
+		for j := i + 1; j < nrClass; j++ {
 			var sub_prob Problem
 
 			si := start[i] // SV starting from x[si] are related to label i
@@ -163,9 +163,9 @@ func (model *Model) classification(prob *Problem) {
 	}
 
 	// Update the model!
-	model.nr_class = nr_class
-	model.label = make([]int, nr_class)
-	for i := 0; i < nr_class; i++ {
+	model.nrClass = nrClass
+	model.label = make([]int, nrClass)
+	for i := 0; i < nrClass; i++ {
 		model.label[i] = label[i]
 	}
 
@@ -175,9 +175,9 @@ func (model *Model) classification(prob *Problem) {
 	}
 
 	var total_sv int = 0
-	nz_count := make([]int, nr_class)
-	model.nSV = make([]int, nr_class)
-	for i := 0; i < nr_class; i++ {
+	nz_count := make([]int, nrClass)
+	model.nSV = make([]int, nrClass)
+	for i := 0; i < nrClass; i++ {
 		var nSV int = 0
 		for j := 0; j < count[i]; j++ {
 			if nonzero[start[i]+j] {
@@ -194,35 +194,35 @@ func (model *Model) classification(prob *Problem) {
 	model.l = total_sv
 	model.x_space = prob.x_space
 
-	model.SV = make([]int, total_sv)
-	model.sv_indices = make([]int, total_sv)
+	model.sV = make([]int, total_sv)
+	model.svIndices = make([]int, total_sv)
 	var p int = 0
 	for i := 0; i < l; i++ {
 		if nonzero[i] {
-			model.SV[p] = x[i]
-			model.sv_indices[p] = perm[i] + 1
+			model.sV[p] = x[i]
+			model.svIndices[p] = perm[i] + 1
 			p++
 		}
 	}
 
-	nz_start := make([]int, nr_class)
+	nz_start := make([]int, nrClass)
 	nz_start[0] = 0
-	for i := 1; i < nr_class; i++ {
+	for i := 1; i < nrClass; i++ {
 		nz_start[i] = nz_start[i-1] + nz_count[i-1]
 	}
 
-	model.sv_coef = make([][]float64, nr_class-1)
-	for i := 0; i < nr_class-1; i++ {
-		model.sv_coef[i] = make([]float64, total_sv)
+	model.svCoef = make([][]float64, nrClass-1)
+	for i := 0; i < nrClass-1; i++ {
+		model.svCoef[i] = make([]float64, total_sv)
 	}
 
 	p = 0
-	for i := 0; i < nr_class; i++ {
-		for j := i + 1; j < nr_class; j++ {
+	for i := 0; i < nrClass; i++ {
+		for j := i + 1; j < nrClass; j++ {
 
 			// classifier (i,j): coefficients with
-			// i are in sv_coef[j-1][nz_start[i]...],
-			// j are in sv_coef[i][nz_start[j]...]
+			// i are in svCoef[j-1][nz_start[i]...],
+			// j are in svCoef[i][nz_start[j]...]
 
 			si := start[i]
 			sj := start[j]
@@ -233,14 +233,14 @@ func (model *Model) classification(prob *Problem) {
 			q := nz_start[i]
 			for k := 0; k < ci; k++ {
 				if nonzero[si+k] {
-					model.sv_coef[j-1][q] = decisions[p].alpha[k]
+					model.svCoef[j-1][q] = decisions[p].alpha[k]
 					q++
 				}
 			}
 			q = nz_start[j]
 			for k := 0; k < cj; k++ {
 				if nonzero[sj+k] {
-					model.sv_coef[i][q] = decisions[p].alpha[ci+k]
+					model.svCoef[i][q] = decisions[p].alpha[ci+k]
 					q++
 				}
 			}
@@ -264,17 +264,17 @@ func (model *Model) regressionOneClass(prob *Problem) {
 
 		model.l = nSV
 		model.x_space = prob.x_space
-		model.SV = make([]int, nSV)
-		model.sv_coef = make([][]float64, 1)
-		model.sv_coef[0] = make([]float64, nSV)
-		model.sv_indices = make([]int, nSV)
+		model.sV = make([]int, nSV)
+		model.svCoef = make([][]float64, 1)
+		model.svCoef[0] = make([]float64, nSV)
+		model.svIndices = make([]int, nSV)
 
 		var j int = 0
 		for i := 0; i < prob.l; i++ {
 			if math.Abs(decision_result.alpha[i]) > 0 {
-				model.SV[j] = prob.x[i]
-				model.sv_coef[0][j] = decision_result.alpha[i]
-				model.sv_indices[j] = i + 1
+				model.sV[j] = prob.x[i]
+				model.svCoef[0][j] = decision_result.alpha[i]
+				model.svIndices[j] = i + 1
 				j++
 			}
 		}
@@ -320,14 +320,14 @@ func (model *Model) Dump(file string) error {
 		output = append(output, fmt.Sprintf("coef0 %.6g\n", model.param.Coef0))
 	}
 
-	var nr_class int = model.nr_class
-	output = append(output, fmt.Sprintf("nr_class %d\n", nr_class))
+	var nrClass int = model.nrClass
+	output = append(output, fmt.Sprintf("nr_class %d\n", nrClass))
 
 	var l int = model.l
 	output = append(output, fmt.Sprintf("total_sv %d\n", l))
 
 	output = append(output, "rho")
-	total_models := nr_class * (nr_class - 1) / 2
+	total_models := nrClass * (nrClass - 1) / 2
 	for i := 0; i < total_models; i++ {
 		output = append(output, fmt.Sprintf(" %.6g", model.rho[i]))
 	}
@@ -335,7 +335,7 @@ func (model *Model) Dump(file string) error {
 
 	if len(model.label) > 0 {
 		output = append(output, "label")
-		for i := 0; i < nr_class; i++ {
+		for i := 0; i < nrClass; i++ {
 			output = append(output, fmt.Sprintf(" %d", model.label[i]))
 		}
 		output = append(output, "\n")
@@ -368,11 +368,11 @@ func (model *Model) Dump(file string) error {
 	output = append(output, "SV\n")
 
 	for i := 0; i < l; i++ {
-		for j := 0; j < nr_class-1; j++ {
-			output = append(output, fmt.Sprintf("%.16g ", model.sv_coef[j][i]))
+		for j := 0; j < nrClass-1; j++ {
+			output = append(output, fmt.Sprintf("%.16g ", model.svCoef[j][i]))
 		}
 
-		i_idx := model.SV[i]
+		i_idx := model.sV[i]
 		if model.param.KernelType == PRECOMPUTED {
 			output = append(output, fmt.Sprintf("0:%d ", model.x_space[i_idx]))
 		} else {
@@ -447,7 +447,7 @@ func (model *Model) readHeader(scanner *bufio.Scanner) error {
 
 		case "nr_class":
 
-			if model.nr_class, err = strconv.Atoi(tokens[1]); err != nil {
+			if model.nrClass, err = strconv.Atoi(tokens[1]); err != nil {
 				return err
 			}
 
@@ -459,7 +459,7 @@ func (model *Model) readHeader(scanner *bufio.Scanner) error {
 
 		case "rho":
 
-			total_class_comparisons := model.nr_class * (model.nr_class - 1) / 2
+			total_class_comparisons := model.nrClass * (model.nrClass - 1) / 2
 			if total_class_comparisons != len(tokens)-1 {
 				return fmt.Errorf("Number of rhos %d does not mactch the required number %d\n", len(tokens)-1, total_class_comparisons)
 			}
@@ -473,12 +473,12 @@ func (model *Model) readHeader(scanner *bufio.Scanner) error {
 
 		case "label":
 
-			if model.nr_class != len(tokens)-1 {
-				return fmt.Errorf("Number of labels %d does not appear in the file\n", model.nr_class)
+			if model.nrClass != len(tokens)-1 {
+				return fmt.Errorf("Number of labels %d does not appear in the file\n", model.nrClass)
 			}
 
-			model.label = make([]int, model.nr_class)
-			for i = 0; i < model.nr_class; i++ {
+			model.label = make([]int, model.nrClass)
+			for i = 0; i < model.nrClass; i++ {
 				if model.label[i], err = strconv.Atoi(tokens[i+1]); err != nil {
 					return err
 				}
@@ -486,7 +486,7 @@ func (model *Model) readHeader(scanner *bufio.Scanner) error {
 
 		case "probA":
 
-			total_class_comparisons := model.nr_class * (model.nr_class - 1) / 2
+			total_class_comparisons := model.nrClass * (model.nrClass - 1) / 2
 			if total_class_comparisons != len(tokens)-1 {
 				return fmt.Errorf("Number of probA %d does not mactch the required number %d\n", len(tokens)-1, total_class_comparisons)
 			}
@@ -500,7 +500,7 @@ func (model *Model) readHeader(scanner *bufio.Scanner) error {
 
 		case "probB":
 
-			total_class_comparisons := model.nr_class * (model.nr_class - 1) / 2
+			total_class_comparisons := model.nrClass * (model.nrClass - 1) / 2
 			if total_class_comparisons != len(tokens)-1 {
 				return fmt.Errorf("Number of probB %d does not mactch the required number %d\n", len(tokens)-1, total_class_comparisons)
 			}
@@ -514,12 +514,12 @@ func (model *Model) readHeader(scanner *bufio.Scanner) error {
 
 		case "nr_sv":
 
-			if model.nr_class != len(tokens)-1 {
-				return fmt.Errorf("Number of nSV %d does not appear in the file\n", model.nr_class)
+			if model.nrClass != len(tokens)-1 {
+				return fmt.Errorf("Number of nSV %d does not appear in the file\n", model.nrClass)
 			}
 
-			model.nSV = make([]int, model.nr_class)
-			for i = 0; i < model.nr_class; i++ {
+			model.nSV = make([]int, model.nrClass)
+			for i = 0; i < model.nrClass; i++ {
 				if model.nSV[i], err = strconv.Atoi(tokens[i+1]); err != nil {
 					return err
 				}
@@ -548,15 +548,15 @@ func (model *Model) ReadModel(file string) error {
 
 	model.readHeader(scanner)
 
-	var l int = model.l            // read l from header
-	var m int = model.nr_class - 1 // read nr_class from header
-	model.sv_coef = make([][]float64, m)
+	var l int = model.l           // read l from header
+	var m int = model.nrClass - 1 // read nrClass from header
+	model.svCoef = make([][]float64, m)
 	for i := 0; i < m; i++ {
-		model.sv_coef[i] = make([]float64, l)
+		model.svCoef[i] = make([]float64, l)
 	}
 
 	for i := 0; i < l; i++ {
-		model.SV = append(model.SV, len(model.x_space)) // starting index into x_space for this SV
+		model.sV = append(model.sV, len(model.x_space)) // starting index into x_space for this SV
 
 		scanner.Scan() // scan a line
 		line := scanner.Text()
@@ -565,7 +565,7 @@ func (model *Model) ReadModel(file string) error {
 		var k int = 0
 		for _, token := range tokens {
 			if k < m {
-				model.sv_coef[k][i], err = strconv.ParseFloat(token, 64)
+				model.svCoef[k][i], err = strconv.ParseFloat(token, 64)
 				k++
 			} else {
 				node := strings.Split(token, ":")

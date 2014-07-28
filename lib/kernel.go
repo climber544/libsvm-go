@@ -68,10 +68,12 @@ func (k rbf) compute(i, j int) float64 {
 
 func NewRBF(x []int, x_space []snode, l int, gamma float64) rbf {
 	x_square := make([]float64, l)
+
 	for i := 0; i < l; i++ {
 		var idx_i int = x[i]
 		x_square[i] = dot(x_space[idx_i:], x_space[idx_i:])
 	}
+
 	return rbf{x: x, x_space: x_space, x_square: x_square, gamma: gamma}
 }
 
@@ -127,4 +129,25 @@ func NewKernel(prob *Problem, param *Parameter) (kernelFunction, error) {
 		return NewSigmoid(prob.x, prob.x_space, param.Gamma, param.Coef0), nil
 	}
 	return nil, errors.New("unsupported kernel")
+}
+
+func computeKernelValue(px, py []snode, param *Parameter) float64 {
+	switch param.SvmType {
+	case LINEAR:
+		return dot(px, py)
+	case RBF:
+		q := dot(px, px) + dot(py, py) - 2*dot(px, py)
+		return math.Exp(-param.Gamma * q)
+	case POLY:
+		q := param.Gamma*dot(px, py) + param.Coef0
+		return math.Pow(q, float64(param.Degree))
+	case SIGMOID:
+		q := param.Gamma*dot(px, py) + param.Coef0
+		return math.Tanh(q)
+	case PRECOMPUTED:
+		var idx_j int = int(py[0].value)
+		return px[idx_j].value
+	}
+
+	return 0
 }
