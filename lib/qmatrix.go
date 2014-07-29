@@ -1,8 +1,9 @@
 package main
 
 type matrixQ interface {
-	getQ(i, l int) []float64 // Returns all the Q matrix values for column i
-	getQD() []float64        // Returns the Q matrix values for the diagonal
+	getQ(i, l int) []float64   // Returns all the Q matrix values for column i
+	getQD() []float64          // Returns the Q matrix values for the diagonal
+	computeQ(i, j int) float64 // Returns the Q matrix value at (i,j)
 }
 
 /**
@@ -101,6 +102,13 @@ func (q oneClassQ) getQ(i, l int) []float64 {
 	return rcq
 }
 
+/**
+ * Computes the Q[i,j] entry
+ */
+func (q oneClassQ) computeQ(i, j int) float64 {
+	return q.kernel.compute(i, j)
+}
+
 func NewOneClassQ(prob *Problem, param *Parameter) oneClassQ {
 	kernel, err := NewKernel(prob, param)
 	if err != nil {
@@ -175,6 +183,16 @@ func (q svrQ) getQ(i, l int) []float64 { // @param l is 2 * q.l
 	q.parRunner.waitAll()
 
 	return rcq
+}
+
+/**
+ * Computes the Q[i,j] entry
+ */
+func (q svrQ) computeQ(i, j int) float64 {
+	real_i := q.real_idx(i)
+	real_j := q.real_idx(j)
+
+	return q.sign(i) * q.sign(j) * q.kernel.compute(real_i, real_j)
 }
 
 func NewSVRQ(prob *Problem, param *Parameter) svrQ {

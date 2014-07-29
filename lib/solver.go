@@ -73,13 +73,15 @@ func (solver *Solver) Solve() solution {
 	for i := 0; i < solver.l; i++ {
 		solver.gradient[i] = solver.p[i]
 	}
+
 	for i := 0; i < solver.l; i++ {
 		var alpha_i float64 = solver.alpha[i]
-		Q_i := solver.q.getQ(i, solver.l)
+		Q_i := solver.q.getQ(i, solver.l) // getQ() is parallelized in the respective matrixQ implementation
 		for j := 0; j < solver.l; j++ {
 			solver.gradient[j] += alpha_i * Q_i[j]
 		}
 	}
+	// solver.initGradient() // Alternative parallelization strategy
 
 	var iter int = 0
 	var max_iter int = 0
@@ -215,6 +217,24 @@ func (solver *Solver) Solve() solution {
 	fmt.Printf("\noptimization finished, #iter = %d\n", iter)
 
 	return si
+}
+
+func (solver *Solver) initGradient() {
+	run := func(start, end int) {
+		//for j := 0; j < solver.l; j++ {
+		for j := start; j < end; j++ {
+			for i := 0; i < solver.l; i++ {
+				solver.gradient[j] += solver.alpha[i] + solver.q.computeQ(i, j)
+			}
+		}
+	}
+
+	// We CANNOT use solver.parRunner here because that has been initialized with prob.l
+	// solver.l == 2 * prob.l in the case for SVRQ
+	// Therefore we create this just once in the initialization phase of the Solve() method
+	runner := NewParallelRunner(solver.l)
+	runner.run(run)
+	runner.waitAll()
 }
 
 func (solver *Solver) updateGradient(Q_i, Q_j []float64, deltaAlpha_i, deltaAlpha_j float64) {
