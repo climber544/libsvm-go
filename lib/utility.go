@@ -47,6 +47,16 @@ func GetModelFileName(file string) string {
 	return strings.Join(model_file, "")
 }
 
+func MapToSnode(m map[int]float64) []snode {
+	var snodeSlice []snode
+
+	for index, value := range m {
+		snodeSlice = append(snodeSlice, snode{index: index, value: value})
+	}
+
+	return snodeSlice
+}
+
 func print_space(x []int, x_space []snode) {
 	for idx, i := range x {
 		fmt.Printf("[%d] %d: ", idx, i)

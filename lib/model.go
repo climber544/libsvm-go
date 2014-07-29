@@ -17,7 +17,7 @@ type Model struct {
 	rho       []float64
 	nSV       []int
 	sV        []int
-	x_space   []snode
+	svSpace   []snode
 	svIndices []int
 	svCoef    [][]float64
 	probA     []float64
@@ -128,8 +128,8 @@ func (model *Model) classification(prob *Problem) {
 			ci := count[i] // number of SV from x[si] that are related to label i
 			cj := count[j] // number of SV from x[sj] that are related to label j
 
-			sub_prob.x_space = prob.x_space // inherits the space
-			sub_prob.l = ci + cj            // focus only on 2 labels
+			sub_prob.xSpace = prob.xSpace // inherits the space
+			sub_prob.l = ci + cj          // focus only on 2 labels
 			sub_prob.x = make([]int, sub_prob.l)
 			sub_prob.y = make([]float64, sub_prob.l)
 			for k := 0; k < ci; k++ {
@@ -192,7 +192,7 @@ func (model *Model) classification(prob *Problem) {
 	fmt.Printf("Total nSV = %d\n", total_sv)
 
 	model.l = total_sv
-	model.x_space = prob.x_space
+	model.svSpace = prob.xSpace
 
 	model.sV = make([]int, total_sv)
 	model.svIndices = make([]int, total_sv)
@@ -263,7 +263,7 @@ func (model *Model) regressionOneClass(prob *Problem) {
 		}
 
 		model.l = nSV
-		model.x_space = prob.x_space
+		model.svSpace = prob.xSpace
 		model.sV = make([]int, nSV)
 		model.svCoef = make([][]float64, 1)
 		model.svCoef[0] = make([]float64, nSV)
@@ -374,11 +374,11 @@ func (model *Model) Dump(file string) error {
 
 		i_idx := model.sV[i]
 		if model.param.KernelType == PRECOMPUTED {
-			output = append(output, fmt.Sprintf("0:%d ", model.x_space[i_idx]))
+			output = append(output, fmt.Sprintf("0:%d ", model.svSpace[i_idx]))
 		} else {
-			for model.x_space[i_idx].index != -1 {
-				index := model.x_space[i_idx].index
-				value := model.x_space[i_idx].value
+			for model.svSpace[i_idx].index != -1 {
+				index := model.svSpace[i_idx].index
+				value := model.svSpace[i_idx].value
 				output = append(output, fmt.Sprintf("%d:%.8g ", index, value))
 				i_idx++
 			}
@@ -556,7 +556,7 @@ func (model *Model) ReadModel(file string) error {
 	}
 
 	for i := 0; i < l; i++ {
-		model.sV = append(model.sV, len(model.x_space)) // starting index into x_space for this SV
+		model.sV = append(model.sV, len(model.svSpace)) // starting index into svSpace for this SV
 
 		scanner.Scan() // scan a line
 		line := scanner.Text()
@@ -570,7 +570,7 @@ func (model *Model) ReadModel(file string) error {
 			} else {
 				node := strings.Split(token, ":")
 				if len(node) < 2 {
-					return fmt.Errorf("Fail to parse x_space from token %v\n", token)
+					return fmt.Errorf("Fail to parse svSpace from token %v\n", token)
 				}
 				var index int
 				var value float64
@@ -580,13 +580,22 @@ func (model *Model) ReadModel(file string) error {
 				if value, err = strconv.ParseFloat(node[1], 64); err != nil {
 					return fmt.Errorf("Fail to parse value from token %v\n", token)
 				}
-				model.x_space = append(model.x_space, snode{index: index, value: value})
+				model.svSpace = append(model.svSpace, snode{index: index, value: value})
 			}
 		}
-		model.x_space = append(model.x_space, snode{index: -1})
+		model.svSpace = append(model.svSpace, snode{index: -1})
 	}
 
 	return nil
+}
+
+func (model Model) Predict(xMap map[int]float64) float64 {
+
+	x := MapToSnode(xMap)
+
+	predict, _ := predictValues(model, x)
+
+	return predict
 }
 
 func NewModel(param *Parameter) Model {

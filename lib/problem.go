@@ -14,10 +14,10 @@ type snode struct {
 }
 
 type Problem struct {
-	l       int       // #SVs
-	y       []float64 // labels
-	x       []int     // starting indices in x_space defining SVs
-	x_space []snode   // SV coeffs
+	l      int       // #SVs
+	y      []float64 // labels
+	x      []int     // starting indices in xSpace defining SVs
+	xSpace []snode   // SV coeffs
 }
 
 func (problem *Problem) Read(file string, param *Parameter) error { // reads the problem from the specified file
@@ -33,7 +33,7 @@ func (problem *Problem) Read(file string, param *Parameter) error { // reads the
 	var l int = 0
 	//var j int = 0
 	for scanner.Scan() {
-		problem.x = append(problem.x, len(problem.x_space))
+		problem.x = append(problem.x, len(problem.xSpace))
 		line := scanner.Text()
 		lineSansComments := strings.Split(line, "#")  // remove any comments
 		tokens := strings.Fields(lineSansComments[0]) // get all the word tokens (seperated by white spaces)
@@ -56,7 +56,7 @@ func (problem *Problem) Read(file string, param *Parameter) error { // reads the
 					if value, err = strconv.ParseFloat(node[1], 64); err != nil {
 						return fmt.Errorf("Fail to parse value from token %v\n", w)
 					}
-					problem.x_space = append(problem.x_space, snode{index: index, value: value})
+					problem.xSpace = append(problem.xSpace, snode{index: index, value: value})
 					if index > max_idx {
 						max_idx = index
 					}
@@ -65,7 +65,7 @@ func (problem *Problem) Read(file string, param *Parameter) error { // reads the
 			}
 		}
 
-		problem.x_space = append(problem.x_space, snode{index: -1})
+		problem.xSpace = append(problem.xSpace, snode{index: -1})
 		l++
 	}
 	problem.l = l

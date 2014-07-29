@@ -21,11 +21,13 @@ func foo() {
 func main() {
 	param := NewParameter()
 
-	var data_file_name string = "../test_data/multi-class/dna.train"
+	//var data_file_name string = "../test_data/multi-class/dna.train"
+	//var data_file_name string = "../test_data/multi-class/a9a.train"
+
 	//var data_file_name string = "../test_data/regression/cpusmall_scale.train"
-	//var data_file_name string = "../test_data/regression/cadata.train"
+	var data_file_name string = "../test_data/regression/cadata.train"
 	//param.SvmType = EPSILON_SVR
-	//param.SvmType = NU_SVR
+	param.SvmType = NU_SVR
 
 	var prob Problem
 

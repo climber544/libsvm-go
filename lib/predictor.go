@@ -1,6 +1,6 @@
 package main
 
-func predictValues(model *Model, px []snode) (float64, []float64) {
+func predictValues(model Model, px []snode) (float64, []float64) {
 	var decisionValues []float64
 
 	switch model.param.SvmType {
@@ -10,7 +10,7 @@ func predictValues(model *Model, px []snode) (float64, []float64) {
 		var sum float64 = 0
 		for i := 0; i < model.l; i++ {
 			var idx_y int = model.sV[i]
-			py := model.x_space[idx_y:]
+			py := model.svSpace[idx_y:]
 			sum += svCoef[i] * computeKernelValue(px, py, model.param)
 		}
 		sum -= model.rho[0]
@@ -34,7 +34,7 @@ func predictValues(model *Model, px []snode) (float64, []float64) {
 		kvalue := make([]float64, l)
 		for i := 0; i < l; i++ {
 			var idx_y int = model.sV[i]
-			py := model.x_space[idx_y:]
+			py := model.svSpace[idx_y:]
 			kvalue[i] = computeKernelValue(px, py, model.param)
 		}
 

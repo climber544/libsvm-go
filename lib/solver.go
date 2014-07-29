@@ -24,6 +24,7 @@ type Solver struct {
 	y            []int8 // class, +1 or -1
 	eps          float64
 	workingSet   workingSetSelecter
+	parRunner    parallelRunner
 }
 
 func (solver Solver) isUpperBound(i int) bool {
@@ -109,8 +110,8 @@ func (solver *Solver) Solve() solution {
 		C_i := solver.getC(i)
 		C_j := solver.getC(j)
 
-		old_alpha_i := solver.alpha[i]
-		old_alpha_j := solver.alpha[j]
+		oldAlpha_i := solver.alpha[i]
+		oldAlpha_j := solver.alpha[j]
 
 		Q_i := solver.q.getQ(i, solver.l) // column i of Q matrix
 		Q_j := solver.q.getQ(j, solver.l) // column j of Q matrix
@@ -188,12 +189,9 @@ func (solver *Solver) Solve() solution {
 			}
 		}
 
-		delta_alpha_i := solver.alpha[i] - old_alpha_i
-		delta_alpha_j := solver.alpha[j] - old_alpha_j
-		for k := 0; k < solver.l; k++ {
-			t := Q_i[k]*delta_alpha_i + Q_j[k]*delta_alpha_j
-			solver.gradient[k] += t
-		}
+		deltaAlpha_i := solver.alpha[i] - oldAlpha_i
+		deltaAlpha_j := solver.alpha[j] - oldAlpha_j
+		solver.updateGradient(Q_i, Q_j, deltaAlpha_i, deltaAlpha_j)
 
 		solver.updateAlphaStatus(i)
 		solver.updateAlphaStatus(j)
@@ -219,6 +217,19 @@ func (solver *Solver) Solve() solution {
 	return si
 }
 
+func (solver *Solver) updateGradient(Q_i, Q_j []float64, deltaAlpha_i, deltaAlpha_j float64) {
+
+	run := func(start, end int) {
+		for k := start; k < end; k++ {
+			t := Q_i[k]*deltaAlpha_i + Q_j[k]*deltaAlpha_j
+			solver.gradient[k] += t
+		}
+	}
+
+	solver.parRunner.run(run)  // run the closure in parallel
+	solver.parRunner.waitAll() // wait for all the parallel runs to complete
+}
+
 func NewSolver(l int, q matrixQ, p []float64, y []int8, alpha []float64, penaltyCp, penaltyCn, eps float64, nu bool) Solver {
 
 	solver := Solver{l: l, q: q, p: p, y: y, alpha: alpha,
@@ -229,5 +240,7 @@ func NewSolver(l int, q matrixQ, p []float64, y []int8, alpha []float64, penalty
 		solver.workingSet = selectWorkingSet{}
 	}
 	solver.qd = q.getQD()
+	solver.parRunner = NewParallelRunner(solver.l)
+
 	return solver
 }

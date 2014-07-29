@@ -9,9 +9,10 @@ type matrixQ interface {
  * Q matrix for support vector classification (SVC)
  */
 type svcQ struct {
-	y      []int8
-	qd     []float64
-	kernel kernelFunction
+	y         []int8
+	qd        []float64
+	kernel    kernelFunction
+	parRunner parallelRunner
 }
 
 /**
@@ -26,9 +27,17 @@ func (q svcQ) getQD() []float64 {
  */
 func (q svcQ) getQ(i, l int) []float64 {
 	rcq := make([]float64, l)
-	for j := 0; j < l; j++ { // compute rows
-		rcq[j] = float64(q.y[i]*q.y[j]) * q.kernel.compute(i, j)
+
+	run := func(start, end int) {
+		for j := start; j < end; j++ { // compute rows
+			rcq[j] = float64(q.y[i]*q.y[j]) * q.kernel.compute(i, j)
+		}
 	}
+
+	q.parRunner.run(run)
+	q.parRunner.waitAll()
+	//run(0, l)
+
 	return rcq
 }
 
@@ -50,15 +59,16 @@ func NewSVCQ(prob *Problem, param *Parameter, y []int8) svcQ {
 		qd[i] = kernel.compute(i, i)
 	}
 
-	return svcQ{y: y, qd: qd, kernel: kernel}
+	return svcQ{y: y, qd: qd, kernel: kernel, parRunner: NewParallelRunner(prob.l)}
 }
 
 /**
  * Q matrix for one-class support vector machines: determines if new data is likely to be in one class (novality detection).
  */
 type oneClassQ struct {
-	qd     []float64
-	kernel kernelFunction
+	qd        []float64
+	kernel    kernelFunction
+	parRunner parallelRunner
 }
 
 /**
@@ -73,9 +83,21 @@ func (q oneClassQ) getQD() []float64 {
  */
 func (q oneClassQ) getQ(i, l int) []float64 {
 	rcq := make([]float64, l)
-	for j := 0; j < l; j++ { // compute rows
-		rcq[j] = q.kernel.compute(i, j)
+	/*
+		for j := 0; j < l; j++ { // compute rows
+			rcq[j] = q.kernel.compute(i, j)
+		}
+	*/
+
+	run := func(start, end int) {
+		for j := start; j < end; j++ { // compute rows
+			rcq[j] = q.kernel.compute(i, j)
+		}
 	}
+
+	q.parRunner.run(run)
+	q.parRunner.waitAll()
+
 	return rcq
 }
 
@@ -90,16 +112,17 @@ func NewOneClassQ(prob *Problem, param *Parameter) oneClassQ {
 		qd[i] = kernel.compute(i, i)
 	}
 
-	return oneClassQ{qd: qd, kernel: kernel}
+	return oneClassQ{qd: qd, kernel: kernel, parRunner: NewParallelRunner(prob.l)}
 }
 
 /**
  * Q matrix for support vector regression
  */
 type svrQ struct {
-	l      int       // problem size
-	qd     []float64 // Q matrix diagonial values
-	kernel kernelFunction
+	l         int       // problem size
+	qd        []float64 // Q matrix diagonial values
+	kernel    kernelFunction
+	parRunner parallelRunner
 }
 
 func (q svrQ) real_idx(i int) int {
@@ -133,12 +156,23 @@ func (q svrQ) getQ(i, l int) []float64 { // @param l is 2 * q.l
 	real_i := q.real_idx(i)
 
 	rcq := make([]float64, 2*q.l)
-
-	for j := 0; j < q.l; j++ { // compute rows
-		t := q.kernel.compute(real_i, j)
-		rcq[j] = sign_i * q.sign(j) * t
-		rcq[j+q.l] = sign_i * q.sign(j+l) * t
+	/*
+		for j := 0; j < q.l; j++ { // compute rows
+			t := q.kernel.compute(real_i, j)
+			rcq[j] = sign_i * q.sign(j) * t
+			rcq[j+q.l] = sign_i * q.sign(j+l) * t
+		}
+	*/
+	run := func(start, end int) {
+		for j := start; j < end; j++ { // compute rows
+			t := q.kernel.compute(real_i, j)
+			rcq[j] = sign_i * q.sign(j) * t
+			rcq[j+q.l] = sign_i * q.sign(j+l) * t
+		}
 	}
+
+	q.parRunner.run(run)
+	q.parRunner.waitAll()
 
 	return rcq
 }
@@ -156,5 +190,5 @@ func NewSVRQ(prob *Problem, param *Parameter) svrQ {
 		qd[i+l] = qd[i]
 	}
 
-	return svrQ{l: l, qd: qd, kernel: kernel}
+	return svrQ{l: l, qd: qd, kernel: kernel, parRunner: NewParallelRunner(prob.l)}
 }
