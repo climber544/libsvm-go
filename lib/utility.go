@@ -8,6 +8,13 @@ import (
 
 const TAU float64 = 1e-12
 
+func absi(a int) int {
+	if a < 0 {
+		return -a
+	}
+	return a
+}
+
 func mini(a, b int) int {
 	if a < b {
 		return a
@@ -48,10 +55,12 @@ func GetModelFileName(file string) string {
 }
 
 func MapToSnode(m map[int]float64) []snode {
-	var snodeSlice []snode
+	var snodeSlice []snode = make([]snode, len(m))
 
+	var i int = 0
 	for index, value := range m {
-		snodeSlice = append(snodeSlice, snode{index: index, value: value})
+		snodeSlice[i] = snode{index: index, value: value}
+		i++
 	}
 
 	return snodeSlice

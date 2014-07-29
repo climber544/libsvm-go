@@ -1,73 +1,106 @@
 package main
 
+import (
+	"container/list"
+	"fmt"
+)
+
 type cacheNode struct {
-	data []float64
-	next *cacheNode
-	prev *cacheNode
+	index    int
+	refCount int
+	data     []float64 // nil if not in the cache
+	offset   int       // offset in cacheBuffer
+	element  *list.Element
 }
 
 type cache struct {
-	head          []cacheNode
-	lruHead       cacheNode
-	colSize       int
-	colCacheAvail int
+	head            []cacheNode // index to cacheNode for each column that could be in the cache
+	colSize         int         // count of the size of each column
+	cacheAvail      int         // count of the number of additional columns we can store
+	cacheBuffer     []float64
+	availableOffset int
+	hits, misses    int
+	cacheList       *list.List // implements tjhe LRU list
 }
 
-func (c *cache) lruDelete(h *cacheNode) {
-	h.prev.next = h.next
-	h.next.prev = h.prev
-}
+const sizeOfFloat64 = 8
 
-func (c *cache) lruInsert(h *cacheNode) {
-	h.next = &(c.lruHead)
-	h.prev = c.lruHead.prev
-	h.prev.next = h
-	h.next.prev = h
-}
-
-func (c *cache) getData(i int) []float64 {
+func (c *cache) getData(i int) ([]float64, bool) {
 	var newData bool = true
 
-	if c.head[i].data != nil {
+	c.head[i].refCount++ // count reference to this index
+
+	if c.head[i].offset != -1 {
 		h := &(c.head[i])
-		c.lruDelete(h)
+		c.cacheList.Remove(h.element) // Remove from LRU list so we can re-insert into the back
 		newData = false
+		c.hits++
 	}
 
 	if newData {
+		var useOffset int = 0
 		// new data
-		if c.colCacheAvail == 0 { // no more space in cache
+		if c.cacheAvail == 0 { // no more space in cache
 			// free a column
-			old := c.lruHead.next // oldest cache column
 
-			old.data = nil // deallocate the slice it is storing
-			c.lruDelete(old)
+			//Remove the front of the LRU list (the least used)
+			oldElement := c.cacheList.Front()
+			value := c.cacheList.Remove(oldElement)
+			old := value.(*cacheNode)
 
-			c.colCacheAvail++
+			useOffset = old.offset // reuse its memory
+			old.offset = -1
+
+			c.cacheAvail++
+		} else {
+			useOffset = c.availableOffset
+			c.availableOffset += c.colSize
 		}
 
-		c.head[i].data = make([]float64, c.colSize)
+		c.head[i].data = c.cacheBuffer[useOffset : useOffset+c.colSize]
+		c.head[i].offset = useOffset // remember which offsef this cache line has been assigned
 
-		c.colCacheAvail--
+		c.cacheAvail--
+
+		c.misses++
 	}
 
 	h := &(c.head[i])
-	c.lruInsert(h)
-
-	return c.head[i].data
+	h.element = c.cacheList.PushBack(h) // Inserts it at the back of LRU circular list
+	return c.head[i].data, newData
 }
 
-func NewCache(l, colSize, cacheSize int) cache {
+func (c cache) stats() {
+	fmt.Printf("Cache misses:     %d\n", c.misses)
+	fmt.Printf("Cache hits:       %d\n", c.hits)
+	fmt.Printf("Cache efficiency: %.6f%%\n", float32(c.hits)/float32(c.hits+c.misses)*100)
+}
+
+func computeCacheSize(colSize int) int {
+	var cacheSize int = 500 // MB (default)
+
+	cacheSizeBytes := cacheSize * (1 << 20)
+	numCols := cacheSizeBytes / (colSize * sizeOfFloat64) // num of columns we can store
+	numCols = maxi(2, numCols)                            // we should be able to store at least 2
+
+	return numCols
+}
+
+func NewCache(l, colSize int) *cache {
+
+	colCacheSize := computeCacheSize(colSize) // number of columns we can cache
+
 	head := make([]cacheNode, l)
 	for i := 0; i < l; i++ {
+		head[i].index = i
+		head[i].refCount = 0
 		head[i].data = nil
-		head[i].next = nil
-		head[i].prev = nil
+		head[i].offset = -1
 	}
 
-	c := cache{head: head, colSize: colSize, colCacheAvail: cacheSize}
-	c.lruHead.next = nil
-	c.lruHead.prev = nil
+	c := cache{head: head, colSize: colSize, cacheAvail: colCacheSize, availableOffset: 0, hits: 0, misses: 0}
+	c.cacheBuffer = make([]float64, colCacheSize*colSize)
+	c.cacheList = list.New()
 
-	return c
+	return &c
 }
