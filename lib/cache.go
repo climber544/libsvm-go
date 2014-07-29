@@ -57,7 +57,7 @@ func (c *cache) getData(i int) []float64 {
 	return c.head[i].data
 }
 
-func NewCache(l, colSize, cacheSize int) {
+func NewCache(l, colSize, cacheSize int) cache {
 	head := make([]cacheNode, l)
 	for i := 0; i < l; i++ {
 		head[i].data = nil
@@ -68,4 +68,6 @@ func NewCache(l, colSize, cacheSize int) {
 	c := cache{head: head, colSize: colSize, colCacheAvail: cacheSize}
 	c.lruHead.next = nil
 	c.lruHead.prev = nil
+
+	return c
 }
