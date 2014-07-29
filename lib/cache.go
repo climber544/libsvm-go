@@ -6,21 +6,21 @@ import (
 )
 
 type cacheNode struct {
-	index    int
-	refCount int
-	data     []float64 // nil if not in the cache
-	offset   int       // offset in cacheBuffer
-	element  *list.Element
+	index    int           // column index for which this cacheNode is caching
+	refCount int           // number of times this column was referenced
+	data     []float64     // valid slice from cache::cacheBuffer if in the cache
+	offset   int           // offset in cache::cacheBuffer data field is referring too
+	element  *list.Element // list element (iterator) if in LRU list
 }
 
 type cache struct {
-	head            []cacheNode // index to cacheNode for each column that could be in the cache
-	colSize         int         // count of the size of each column
-	cacheAvail      int         // count of the number of additional columns we can store
+	head            []cacheNode // all the possible cached columns
+	colSize         int         // size of each column
+	cacheAvail      int         // number of additional columns we can store
 	cacheBuffer     []float64
 	availableOffset int
-	hits, misses    int
-	cacheList       *list.List // implements tjhe LRU list
+	hits, misses    int        // cache statistics
+	cacheList       *list.List // LRU list
 }
 
 const sizeOfFloat64 = 8
