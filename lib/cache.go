@@ -17,10 +17,10 @@ type cache struct {
 	head            []cacheNode // all the possible cached columns
 	colSize         int         // size of each column
 	cacheAvail      int         // number of additional columns we can store
-	cacheBuffer     []float64
-	availableOffset int
-	hits, misses    int        // cache statistics
-	cacheList       *list.List // LRU list
+	cacheBuffer     []float64   // pre-allocated buffer for cache
+	availableOffset int         // next available offset in cacheBuffer
+	hits, misses    int         // cache statistics
+	cacheList       *list.List  // LRU list
 }
 
 const sizeOfFloat64 = 8
