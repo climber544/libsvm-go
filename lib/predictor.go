@@ -1,6 +1,29 @@
 package main
 
-func predictValues(model Model, px []snode) (float64, []float64) {
+/**
+*  This function gives decision values on a test vector x given a
+   model, and return the predicted label (classification) or
+   the function value (regression).
+
+   For a classification model with nr_class classes, this function
+   gives nr_class*(nr_class-1)/2 decision values in the array
+   dec_values, where nr_class can be obtained from the function
+   svm_get_nr_class. The order is label[0] vs. label[1], ...,
+   label[0] vs. label[nr_class-1], label[1] vs. label[2], ...,
+   label[nr_class-2] vs. label[nr_class-1], where label can be
+   obtained from the function svm_get_labels. The returned value is
+   the predicted class for x. Note that when nr_class = 1, this
+   function does not give any decision value.
+
+   For a regression model, dec_values[0] and the returned value are
+   both the function value of x calculated using the model. For a
+   one-class model, dec_values[0] is the decision value of x, while
+   the returned value is +1/-1.
+
+*/
+func (model Model) PredictValues(x map[int]float64) (float64, []float64) {
+	px := MapToSnode(x)
+
 	var decisionValues []float64
 
 	switch model.param.SvmType {
@@ -90,4 +113,21 @@ func predictValues(model Model, px []snode) (float64, []float64) {
 	}
 
 	return 0, decisionValues
+}
+
+/**
+* This function does classification or regression on a test vector x
+   given a model.
+
+   For a classification model, the predicted class for x is returned.
+   For a regression model, the function value of x calculated using
+   the model is returned. For an one-class model, +1 or -1 is
+   returned.
+
+*/
+func (model Model) Predict(x map[int]float64) float64 {
+
+	predict, _ := model.PredictValues(x)
+
+	return predict
 }

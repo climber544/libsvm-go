@@ -589,15 +589,6 @@ func (model *Model) ReadModel(file string) error {
 	return nil
 }
 
-func (model Model) Predict(xMap map[int]float64) float64 {
-
-	x := MapToSnode(xMap)
-
-	predict, _ := predictValues(model, x)
-
-	return predict
-}
-
 func NewModel(param *Parameter) Model {
 	return Model{param: param}
 }
