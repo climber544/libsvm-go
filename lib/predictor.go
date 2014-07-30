@@ -5,26 +5,26 @@ package main
    model, and return the predicted label (classification) or
    the function value (regression).
 
-   For a classification model with nr_class classes, this function
-   gives nr_class*(nr_class-1)/2 decision values in the array
-   dec_values, where nr_class can be obtained from the function
-   svm_get_nr_class. The order is label[0] vs. label[1], ...,
+   For a classification model with nrClass classes, this function
+   gives nrClass*(nrClass-1)/2 decision values in the array
+   decisionValues, where nrClass can be obtained from the model.
+   The order is label[0] vs. label[1], ...,
    label[0] vs. label[nr_class-1], label[1] vs. label[2], ...,
-   label[nr_class-2] vs. label[nr_class-1], where label can be
-   obtained from the function svm_get_labels. The returned value is
-   the predicted class for x. Note that when nr_class = 1, this
+   label[nrClass-2] vs. label[nrClass-1], where label can be
+   obtained from the model. The returned value is
+   the predicted class for x. Note that when nrClass = 1, this
    function does not give any decision value.
 
-   For a regression model, dec_values[0] and the returned value are
+   For a regression model, decisionValues[0] and the returned value are
    both the function value of x calculated using the model. For a
-   one-class model, dec_values[0] is the decision value of x, while
+   one-class model, decisionValues[0] is the decision value of x, while
    the returned value is +1/-1.
 
 */
-func (model Model) PredictValues(x map[int]float64) (float64, []float64) {
-	px := MapToSnode(x)
+func (model Model) PredictValues(x map[int]float64) (returnValue float64, decisionValues []float64) {
+	returnValue = 0
 
-	var decisionValues []float64
+	px := MapToSnode(x)
 
 	switch model.param.SvmType {
 	case ONE_CLASS, EPSILON_SVR, NU_SVR:
@@ -42,12 +42,14 @@ func (model Model) PredictValues(x map[int]float64) (float64, []float64) {
 
 		if model.param.SvmType == ONE_CLASS {
 			if sum > 0 {
-				return 1, decisionValues
+				returnValue = 1 // return
 			} else {
-				return -1, decisionValues
+				returnValue = -1 // return
 			}
+			return // returnValue, decisionValues
 		} else {
-			return sum, decisionValues
+			returnValue = sum
+			return // returnValue, decisionValues
 		}
 
 	case C_SVC, NU_SVC:
@@ -109,10 +111,11 @@ func (model Model) PredictValues(x map[int]float64) (float64, []float64) {
 			}
 		}
 
-		return float64(model.label[maxIdx]), decisionValues
+		returnValue = float64(model.label[maxIdx])
+		return // returnValue, decisionValues
 	}
 
-	return 0, decisionValues
+	return
 }
 
 /**

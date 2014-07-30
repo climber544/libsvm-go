@@ -24,11 +24,11 @@ type Model struct {
 	probB     []float64
 }
 
-func (model Model) groupClasses(prob *Problem) (int, []int, []int, []int, []int) {
+func groupClasses(prob *Problem) (nrClass int, label []int, start []int, count []int, perm []int) {
 	var l int = prob.l
 
-	label := make([]int, 0)
-	count := make([]int, 0)
+	label = make([]int, 0)
+	count = make([]int, 0)
 	data_label := make([]int, l)
 
 	for i := 0; i < l; i++ { // find unqie labels and put them in the label slice
@@ -62,14 +62,14 @@ func (model Model) groupClasses(prob *Problem) (int, []int, []int, []int, []int)
 		}
 	}
 
-	nrClass := len(label) // number of unique labels found
-	start := make([]int, nrClass)
+	nrClass = len(label) // number of unique labels found
+	start = make([]int, nrClass)
 	start[0] = 0
 	for i := 1; i < nrClass; i++ {
 		start[i] = start[i-1] + count[i-1]
 	}
 
-	perm := make([]int, l)
+	perm = make([]int, l)
 	for i := 0; i < l; i++ {
 		label_idx := data_label[i]
 		next_avail_pos := start[label_idx]
@@ -82,12 +82,12 @@ func (model Model) groupClasses(prob *Problem) (int, []int, []int, []int, []int)
 		start[i] = start[i-1] + count[i-1]
 	}
 
-	return nrClass, label, start, count, perm
+	return // nrClass, label, start, count, perm
 }
 
 func (model *Model) classification(prob *Problem) {
 
-	nrClass, label, start, count, perm := model.groupClasses(prob) // group SV with the same labels together
+	nrClass, label, start, count, perm := groupClasses(prob) // group SV with the same labels together
 
 	var l int = prob.l
 	x := make([]int, l)

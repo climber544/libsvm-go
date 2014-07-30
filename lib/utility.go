@@ -55,15 +55,26 @@ func GetModelFileName(file string) string {
 }
 
 func MapToSnode(m map[int]float64) []snode {
-	var snodeSlice []snode = make([]snode, len(m))
+	x := make([]snode, len(m))
 
 	var i int = 0
 	for index, value := range m {
-		snodeSlice[i] = snode{index: index, value: value}
+		x[i] = snode{index: index, value: value}
 		i++
 	}
 
-	return snodeSlice
+	return x
+}
+
+func SnodeToMap(x []snode) map[int]float64 {
+
+	m := make(map[int]float64)
+
+	for i := 0; x[i].index != -1; i++ {
+		m[x[i].index] = x[i].value
+	}
+
+	return m
 }
 
 func print_space(x []int, x_space []snode) {
