@@ -1,5 +1,7 @@
 package main
 
+// import "fmt" // DEBUG
+
 /**
 *  This function gives decision values on a test vector x given a
    model, and return the predicted label (classification) or
@@ -61,6 +63,13 @@ func (model Model) PredictValues(x map[int]float64) (returnValue float64, decisi
 			var idx_y int = model.sV[i]
 			py := model.svSpace[idx_y:]
 			kvalue[i] = computeKernelValue(px, py, model.param)
+			/*
+				if i < 3 { // DEBUG
+					dumpSnode("px: ", px)
+					dumpSnode("py: ", py)
+					fmt.Printf("kvalue[%d]=%f\n", i, kvalue[i])
+				}
+			*/
 		}
 
 		start := make([]int, nrClass)

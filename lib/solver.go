@@ -216,7 +216,7 @@ func (solver *Solver) Solve() solution {
 	si.alpha = solver.alpha
 
 	fmt.Printf("\noptimization finished, #iter = %d\n", iter)
-	solver.q.showCacheStats()
+	// solver.q.showCacheStats() // show cache statistics
 
 	return si
 }

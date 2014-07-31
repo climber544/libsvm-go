@@ -18,6 +18,7 @@ type Problem struct {
 	y      []float64 // labels
 	x      []int     // starting indices in xSpace defining SVs
 	xSpace []snode   // SV coeffs
+	i      int       // counter for iterator
 }
 
 func (problem *Problem) Read(file string, param *Parameter) error { // reads the problem from the specified file
@@ -75,4 +76,31 @@ func (problem *Problem) Read(file string, param *Parameter) error { // reads the
 	}
 
 	return scanner.Err()
+}
+
+func (problem *Problem) Begin() {
+	problem.i = 0
+}
+
+func (problem *Problem) Done() bool {
+	if problem.i >= problem.l {
+		return true
+	}
+	return false
+}
+
+func (problem *Problem) Next() {
+	problem.i++
+	return
+}
+
+func (problem *Problem) Get() (y float64, x map[int]float64) {
+	y = problem.y[problem.i]
+	idx := problem.x[problem.i]
+	x = SnodeToMap(problem.xSpace[idx:])
+	return // y, x
+}
+
+func (problem *Problem) ProblemSize() int {
+	return problem.l
 }

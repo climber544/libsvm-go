@@ -132,7 +132,7 @@ func NewKernel(prob *Problem, param *Parameter) (kernelFunction, error) {
 }
 
 func computeKernelValue(px, py []snode, param *Parameter) float64 {
-	switch param.SvmType {
+	switch param.KernelType {
 	case LINEAR:
 		return dot(px, py)
 	case RBF:

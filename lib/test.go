@@ -21,22 +21,52 @@ func foo() {
 func main() {
 	param := NewParameter()
 
-	//var data_file_name string = "../test_data/multi-class/dna.train"
-	//var data_file_name string = "../test_data/multi-class/a9a.train"
+	//var filename string = "../test_data/multi-class/dna"
+	var filename string = "../test_data/multi-class/a1a"
 
-	//var data_file_name string = "../test_data/regression/cpusmall_scale.train"
-	var data_file_name string = "../test_data/regression/cadata.train"
-	param.SvmType = EPSILON_SVR
+	//var filename string = "../test_data/regression/cpusmall_scale.train"
+	//var filename string = "../test_data/regression/cadata.train"
+	//param.SvmType = EPSILON_SVR
+	//param.KernelType = POLY
 	//param.SvmType = NU_SVR
 
 	var prob Problem
 
-	prob.Read(data_file_name, param)
+	if err := prob.Read(GetTrainFileName(filename), param); err != nil { // read training file data
+		fmt.Println("Fail to read problem: ", err)
+	}
 
+	fmt.Printf("Problem size = %v\n", prob.ProblemSize())
 	model := NewModel(param)
-	model.Train(&prob)
+	if err := model.Train(&prob); err != nil {
+		fmt.Println("Fail to read problem: ", err)
+	}
 
-	model.Dump(GetModelFileName(data_file_name))
+	model.Dump(GetModelFileName(filename))
+
+	var testProb Problem
+	testProb.Read(GetTestFileName(filename), param) // read test file data
+
+	// var count int = 0 // DEBUG
+	var predictFail int = 0
+	testProb.Begin()
+	for testProb.Begin(); !testProb.Done(); testProb.Next() {
+		actualY, x := testProb.Get()
+		//fmt.Println(x)
+		predictY := model.Predict(x)
+		if actualY != predictY {
+			predictFail++
+		}
+		// fmt.Printf("actual y = %v, predicted y = %v\n", actualY, predictY)
+		/*
+			if count > 3 { // DEBUG
+				os.Exit(0)
+			}
+			count++
+		*/
+	}
+
+	fmt.Printf("Accuracy = %.6v\n", 100-(float64(predictFail)*100)/float64(testProb.ProblemSize()))
 
 	/*
 		for _, n := range p.x_space {
